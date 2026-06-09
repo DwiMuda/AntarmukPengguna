@@ -26,6 +26,12 @@
 
   const handleInteraction = (e) => {
     if (gameOverBusy) return;
+
+    // IMPORTANT: If clicking a button or UI element, don't trigger canvas menu logic
+    if (e.target.closest('.btn') || e.target.closest('.name-input') || e.target.closest('.gameover-content')) {
+      return;
+    }
+
     const rect = canvas.getBoundingClientRect();
     const isTouch = e.type.startsWith('touch');
     const clientX = isTouch ? e.touches[0].clientX : e.clientX;
@@ -44,20 +50,26 @@
 
   window.addEventListener('click', handleInteraction);
   window.addEventListener('touchstart', (e) => {
-    // Only handle if it's on the canvas to avoid interfering with other UI
+    // Only handle if it's on the canvas and NOT on a UI element
     if (e.target === canvas) {
       handleInteraction(e);
     }
   }, { passive: true });
 
-  window.addEventListener('mousemove', (e) => {
-    if (gameOverBusy || engine.state !== 'menu') return;
-    const rect = canvas.getBoundingClientRect();
-    const mx = e.clientX - rect.left;
-    const my = e.clientY - rect.top;
-    if (mx >= 0 && mx <= rect.width && my >= 0 && my <= rect.height) {
-      menu.handleCanvasMove(mx, my);
+  // Explicitly handle Game Over buttons to ensure reliability
+  document.querySelector('[data-action="retry"]').addEventListener('click', () => {
+    if (menu._lastMode) {
+      audio.menuSelect();
+      startGame(menu._lastMode);
     }
+  });
+
+  document.querySelector('[data-action="menu"]').addEventListener('click', () => {
+    audio.menuSelect();
+    menu.showScreen('screen-menu');
+    // Ensure engine is in menu mode
+    engine.state = 'menu';
+    engine.menuRenderer = (ctx, W, H, time) => menu.render(ctx, W, H, time);
   });
 
   menu.init(audio, {
