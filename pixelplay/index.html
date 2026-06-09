@@ -55,8 +55,10 @@
           <p class="final-highscore">New High Score!</p>
           <div class="name-input hidden">
             <p>Enter your name:</p>
-            <input type="text" id="player-name" maxlength="12" placeholder="YOUR NAME">
-            <button class="btn btn-small" id="save-score">Save</button>
+            <div class="name-input-group">
+              <input type="text" id="player-name" maxlength="12" placeholder="YOUR NAME">
+              <button class="btn btn-small btn-primary" id="save-score">Save</button>
+            </div>
           </div>
           <div class="gameover-buttons">
             <button class="btn btn-primary" data-action="retry">Retry</button>
