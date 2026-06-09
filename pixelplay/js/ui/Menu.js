@@ -24,25 +24,14 @@ class Menu {
     this.onStartGame = callbacks.onStartGame;
     this.onShowLeaderboard = callbacks.onShowLeaderboard;
     this.onShowGarage = callbacks.onShowGarage;
-
-    document.querySelectorAll('[data-action]').forEach((el) => {
-      el.addEventListener('click', (e) => {
-        const action = el.dataset.action;
-        this.handleAction(action);
-      });
-    });
   }
 
   handleAction(action) {
+    // This is now largely handled by main.js delegation, 
+    // but kept for any internal Menu calls if necessary.
     if (this.audio) this.audio.menuSelect();
     switch (action) {
-      case 'start-asteroid': this.startTransition('asteroid'); break;
-      case 'start-shadow': this.startTransition('shadow'); break;
-      case 'start-runner': this.startTransition('runner'); break;
-      case 'leaderboard': if (this.onShowLeaderboard) this.onShowLeaderboard(); break;
-      case 'garage': if (this.onShowGarage) this.onShowGarage(); break;
       case 'menu': this.showScreen('screen-menu'); break;
-      case 'retry': if (this.onStartGame && this._lastMode) this.onStartGame(this._lastMode); break;
     }
   }
 
@@ -474,8 +463,12 @@ class Menu {
     }
     const barY = H - 60;
     if (my >= barY) {
-      if (mx >= W / 2 - 170 && mx <= W / 2 - 10 && this.onShowGarage) this.onShowGarage();
-      if (mx >= W / 2 + 10 && mx <= W / 2 + 170 && this.onShowLeaderboard) this.onShowLeaderboard();
+      const btnW = 160;
+      const btnGap = 30;
+      const totalW = 2 * btnW + btnGap;
+      const startX = (W - totalW) / 2;
+      if (mx >= startX && mx <= startX + btnW && this.onShowGarage) this.onShowGarage();
+      if (mx >= startX + btnW + btnGap && mx <= startX + 2 * btnW + btnGap && this.onShowLeaderboard) this.onShowLeaderboard();
     }
   }
 

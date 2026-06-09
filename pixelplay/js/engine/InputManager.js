@@ -4,6 +4,7 @@ class InputManager {
     this.justPressed = {};
     this._prevKeys = {};
     this.touches = { x: 0, y: 0, active: false };
+    this.canvas = null;
 
     this.onKeyDown = (e) => {
       if (!this.keys[e.code]) {
@@ -16,23 +17,28 @@ class InputManager {
       this.keys[e.code] = false;
     };
 
-    this.onTouchStart = (e) => {
+    this.updateTouchPos = (e) => {
+      if (!this.canvas) return;
+      const rect = this.canvas.getBoundingClientRect();
       const t = e.touches[0];
-      this.touches.x = t.clientX;
-      this.touches.y = t.clientY;
+      const scaleX = this.canvas.width / rect.width;
+      const scaleY = this.canvas.height / rect.height;
+      this.touches.x = (t.clientX - rect.left) * scaleX;
+      this.touches.y = (t.clientY - rect.top) * scaleY;
+    };
+
+    this.onTouchStart = (e) => {
+      this.updateTouchPos(e);
       this.touches.active = true;
       this.justPressed['Touch'] = true;
-      // Only prevent default if we are on the canvas and it's a gameplay interaction
+      
       if (e.target.tagName === 'CANVAS' && e.cancelable) {
-        // We handle the event, so stop browser from scrolling/zooming
         e.preventDefault();
       }
     };
 
     this.onTouchMove = (e) => {
-      const t = e.touches[0];
-      this.touches.x = t.clientX;
-      this.touches.y = t.clientY;
+      this.updateTouchPos(e);
       if (e.target.tagName === 'CANVAS' && e.cancelable) {
         e.preventDefault();
       }
@@ -52,12 +58,16 @@ class InputManager {
     window.addEventListener('touchend', this.onTouchEnd, { passive: false });
   }
 
+  setCanvas(canvas) {
+    this.canvas = canvas;
+  }
+
   isDown(code) {
     return !!this.keys[code];
   }
 
   wasPressed(code) {
-    return !!this.justPressed[code];
+    return !!this.justPressed[code] || !!this.justPressed['Touch'];
   }
 
   isTouchActive() {

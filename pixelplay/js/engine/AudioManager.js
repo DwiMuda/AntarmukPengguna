@@ -11,8 +11,20 @@ class AudioManager {
   init() {
     try {
       this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      this._setupExplosionBuffer();
     } catch {
       this.enabled = false;
+    }
+  }
+
+  _setupExplosionBuffer() {
+    if (!this.ctx) return;
+    const sampleRate = this.ctx.sampleRate;
+    const bufferSize = sampleRate * 0.4;
+    this._explosionBuffer = this.ctx.createBuffer(1, bufferSize, sampleRate);
+    const data = this._explosionBuffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufferSize, 1.5);
     }
   }
 
@@ -38,7 +50,7 @@ class AudioManager {
       try {
         this._bgmNodes.osc1.stop();
         this._bgmNodes.osc2.stop();
-        this._bgmNodes.lfo.disconnect();
+        this._bgmNodes.lfo.stop();
       } catch {}
       this._bgmNodes = null;
     }
@@ -83,9 +95,9 @@ class AudioManager {
 
     if (this._bgmInterval) clearInterval(this._bgmInterval);
     this._bgmInterval = setInterval(() => {
-      if (this._bgmPlaying && this._bgmNodes) {
-        const n = now + this.ctx.currentTime * 0.1;
-        osc1.frequency.setValueAtTime(55 + Math.sin(n) * 10, this.ctx.currentTime + 0.1);
+      if (this._bgmPlaying && this._bgmNodes && this.ctx) {
+        const n = this.ctx.currentTime * 0.1;
+        this._bgmNodes.osc1.frequency.setTargetAtTime(55 + Math.sin(n) * 10, this.ctx.currentTime, 0.1);
       }
     }, 200);
   }
@@ -111,15 +123,10 @@ class AudioManager {
         break;
       }
       case 'explosion': {
-        const bufferSize = this.ctx.sampleRate * 0.4;
-        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-        const data = buffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) {
-          data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufferSize, 1.5);
-        }
+        if (!this._explosionBuffer) this._setupExplosionBuffer();
         const source = this.ctx.createBufferSource();
         const gain = this.ctx.createGain();
-        source.buffer = buffer;
+        source.buffer = this._explosionBuffer;
         gain.gain.setValueAtTime(this.masterVolume * 0.6, now);
         gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
         source.connect(gain);

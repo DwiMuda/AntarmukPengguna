@@ -13,7 +13,7 @@ class ParticleSystem {
     const spread = config.spread || Math.PI * 2;
 
     for (let i = 0; i < count; i++) {
-      const angle = (i / count) * spread + (config.angle || 0) + (Math.random() - 0.5) * 0.5;
+      const angle = ((i / count) * spread + (config.angle || 0)) + (Math.random() - 0.5) * 0.5;
       const s = speed * (0.3 + Math.random() * 0.7);
       const p = {
         x, y,

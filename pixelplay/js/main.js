@@ -15,6 +15,16 @@
   engine.input = input;
   engine.audio = audio;
 
+  // Initialize menu
+  menu.init(audio, {
+    onStartGame: (mode) => startGame(mode),
+    onShowLeaderboard: () => leaderboard.show(),
+    onShowGarage: () => {
+      refreshGarage();
+      menu.showScreen('screen-garage');
+    }
+  }, engine, storage);
+
   let currentGame = null;
   let gameOverScoreTarget = 0;
   let gameOverScoreCurrent = 0;
@@ -25,15 +35,19 @@
     menu.render(ctx, W, H, time);
   };
 
-  const handleInteraction = (e) => {
-    // If we are in the middle of a Game Over transition, ignore all canvas clicks
+  // --- INTERACTION HANDLING (CANVAS ONLY) ---
+  const handleCanvasInteraction = (e) => {
+    // If we click UI elements, ignore it here
+    if (e.target !== canvas) return;
+
     if (gameOverBusy) {
       if (e.cancelable) e.preventDefault();
       return;
     }
 
-    // Don't handle canvas clicks if the click target is a UI element
-    if (e.target.closest('.btn') || e.target.closest('.name-input') || e.target.closest('.gameover-content')) {
+    // Block canvas clicks while game over popup is showing
+    const goScreen = document.getElementById('screen-gameover');
+    if (goScreen && !goScreen.classList.contains('hidden')) {
       return;
     }
 
@@ -42,20 +56,63 @@
     const clientX = isTouch ? e.touches[0].clientX : e.clientX;
     const clientY = isTouch ? e.touches[0].clientY : e.clientY;
     
-    const mx = clientX - rect.left;
-    const my = clientY - rect.top;
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const mx = (clientX - rect.left) * scaleX;
+    const my = (clientY - rect.top) * scaleY;
 
-    if (mx >= 0 && mx <= rect.width && my >= 0 && my <= rect.height) {
+    if (mx >= 0 && mx <= canvas.width && my >= 0 && my <= canvas.height) {
       if (engine.state === 'menu') {
-        menu.handleCanvasClick(mx, my);
+        if (e.type === 'mousemove') {
+          menu.handleCanvasMove(mx, my);
+        } else {
+          menu.handleCanvasClick(mx, my);
+        }
       }
     }
   };
 
-  window.addEventListener('click', handleInteraction);
+  window.addEventListener('click', handleCanvasInteraction);
+  window.addEventListener('mousemove', handleCanvasInteraction);
   window.addEventListener('touchstart', (e) => {
-    if (e.target === canvas) handleInteraction(e);
+    if (e.target === canvas) handleCanvasInteraction(e);
   }, { passive: false });
+
+  // --- BUTTON & UI HANDLING (DELEGATION) ---
+  document.addEventListener('click', (e) => {
+    try {
+      const btn = e.target.closest('[data-action]');
+      if (!btn) return;
+
+      const action = btn.dataset.action;
+      console.log('Action triggered:', action);
+      
+      audio.menuSelect();
+
+      if (action === 'menu') {
+        currentSessionId++;
+        gameOverBusy = false;
+        engine.stop();
+        menu.showScreen('screen-menu');
+        engine.state = 'menu';
+        engine.menuRenderer = (ctx, W, H, time) => menu.render(ctx, W, H, time);
+    } else if (action === 'retry') {
+      if (!gameOverBusy && menu._lastMode) {
+        startGame(menu._lastMode);
+      } else {
+        menu.showScreen('screen-menu');
+        engine.state = 'menu';
+        engine.menuRenderer = (ctx, W, H, time) => menu.render(ctx, W, H, time);
+      }
+      } else if (action === 'leaderboard') {
+        leaderboard.show();
+      } else if (action === 'garage') {
+        menu.showScreen('screen-garage');
+      }
+    } catch (err) {
+      console.error('Delegation handler error:', err);
+    }
+  }, true); // Use capture phase to ensure it runs before other handlers
 
   function startGame(mode) {
     if (!mode) return;
@@ -67,7 +124,9 @@
       if (!audio.ctx) audio.init();
       audio.resume();
       
-      // Hide ALL screens with absolute certainty
+      menu.setLastMode(mode);
+      
+      // Reset UI visibility
       document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
       document.getElementById('screen-hud').classList.remove('hidden');
 
@@ -100,14 +159,6 @@
       game.setHUDCallback((data) => {
         if (sid === currentSessionId) {
           hud.update(data);
-          engine.hudData = {
-            score: data.score,
-            highScore: storage.getHighScore(mode),
-            combo: data.combo,
-            multiplier: data.multiplier,
-            lives: data.lives,
-            coins: storage.getCoins(),
-          };
         }
       });
 
@@ -139,9 +190,14 @@
       else nameInput.classList.add('hidden');
       
       menu.showScreen('screen-gameover');
-      engine.menuRenderer = (ctx2, W2, H2, time2) => menu.render(ctx2, W2, H2, time2);
+      // Set a static background for Game Over screen
+      engine.menuRenderer = (ctx2, W2, H2, time2) => {
+        ctx2.fillStyle = '#050510';
+        ctx2.fillRect(0, 0, W2, H2);
+      };
     };
 
+    // Backup timer to ensure the screen appears even if animation fails
     const backupTimer = setTimeout(() => {
       if (gameOverBusy && sid === currentSessionId) completeGameOver();
     }, 2500);
@@ -182,27 +238,7 @@
     };
   }
 
-  // Explicitly handle buttons to avoid race conditions
-  document.querySelector('[data-action="retry"]').addEventListener('click', (e) => {
-    e.preventDefault();
-    if (menu._lastMode) {
-      audio.menuSelect();
-      startGame(menu._lastMode);
-    }
-  });
-
-  document.querySelector('[data-action="menu"]').addEventListener('click', (e) => {
-    e.preventDefault();
-    audio.menuSelect();
-    currentSessionId++;
-    gameOverBusy = false;
-    engine.stop();
-    menu.showScreen('screen-menu');
-    engine.state = 'menu';
-    engine.menuRenderer = (ctx, W, H, time) => menu.render(ctx, W, H, time);
-  });
-
-  // Save score
+  // Save score interaction
   document.getElementById('save-score').addEventListener('click', () => {
     const nameInput2 = document.getElementById('player-name');
     const name = nameInput2.value.trim() || 'PLAYER';
@@ -219,11 +255,65 @@
     if (e.key === 'Enter') document.getElementById('save-score').click();
   });
 
+  // --- GARAGE ---
+  const upgCosts = {
+    health: [100, 200, 400, 800, 1600],
+    fireRate: [150, 300, 600, 1200, 2400],
+    speed: [150, 300, 600, 1200, 2400],
+  };
+
+  function refreshGarage() {
+    document.getElementById('garage-coins').textContent = storage.getCoins();
+    const upgrades = storage.getUpgrades();
+    for (const key of ['health', 'fireRate', 'speed']) {
+      const level = upgrades[key] || 0;
+      const fill = document.getElementById('upg-bar-' + key);
+      const lvlEl = document.getElementById('upg-lvl-' + key);
+      const btn = document.getElementById('btn-buy-' + key);
+      fill.style.width = (level / 5) * 100 + '%';
+      lvlEl.textContent = 'Lv.' + level;
+      if (level >= 5) {
+        btn.textContent = 'MAXED';
+        btn.disabled = true;
+      } else {
+        const cost = upgCosts[key][level];
+        btn.textContent = 'Buy (' + cost + '\u25C7)';
+        btn.disabled = storage.getCoins() < cost;
+      }
+    }
+  }
+
+  document.getElementById('btn-buy-health').addEventListener('click', function () {
+    const level = storage.getUpgrades().health || 0;
+    if (level >= 5) return;
+    if (storage.buyUpgrade('health', upgCosts.health[level])) {
+      refreshGarage();
+      audio.menuSelect();
+    }
+  });
+  document.getElementById('btn-buy-fireRate').addEventListener('click', function () {
+    const level = storage.getUpgrades().fireRate || 0;
+    if (level >= 5) return;
+    if (storage.buyUpgrade('fireRate', upgCosts.fireRate[level])) {
+      refreshGarage();
+      audio.menuSelect();
+    }
+  });
+  document.getElementById('btn-buy-speed').addEventListener('click', function () {
+    const level = storage.getUpgrades().speed || 0;
+    if (level >= 5) return;
+    if (storage.buyUpgrade('speed', upgCosts.speed[level])) {
+      refreshGarage();
+      audio.menuSelect();
+    }
+  });
+
   function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
 
-  // Start engine loop
+  // Boot the engine
+  engine.state = 'menu';
   engine.running = true;
   engine.lastTime = performance.now();
-  engine.loop(engine.lastTime);
+  requestAnimationFrame((t) => engine.loop(t));
 
 })();

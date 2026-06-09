@@ -35,6 +35,9 @@ class GameEngine {
     this.width = this.canvas.width;
     this.height = this.canvas.height;
     if (this.bgRenderer) this.bgRenderer.resize(this.width, this.height);
+    if (this.currentGame && this.currentGame.handleResize) {
+      this.currentGame.handleResize(this.width, this.height);
+    }
   }
 
   setState(newState) {
@@ -53,6 +56,7 @@ class GameEngine {
     this.bgRenderer = new BackgroundRenderer(this.ctx, this.width, this.height);
     this.totalTime = 0;
     this.hudData = null;
+    if (this.input) this.input.setCanvas(this.canvas);
     if (gameInstance && gameInstance.init) {
       gameInstance.init(this);
     }
@@ -60,6 +64,8 @@ class GameEngine {
       this.running = true;
       this.lastTime = performance.now();
       this.loop(this.lastTime);
+    } else {
+      this.lastTime = performance.now();
     }
   }
 

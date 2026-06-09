@@ -8,7 +8,7 @@ class LeaderboardUI {
 
     document.querySelectorAll('.lb-tab').forEach((tab) => {
       tab.addEventListener('click', () => {
-        this.menu.audio.menuSelect();
+        if (this.menu.audio) this.menu.audio.menuSelect();
         document.querySelectorAll('.lb-tab').forEach((t) => t.classList.remove('active'));
         tab.classList.add('active');
         this.currentMode = tab.dataset.mode;
