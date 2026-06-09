@@ -1,6 +1,8 @@
 (function () {
   'use strict';
 
+  if (window._incompatible) return;
+
   const canvas = document.getElementById('gameCanvas');
   const engine = new GameEngine(canvas);
   const input = new InputManager();

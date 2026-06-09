@@ -136,6 +136,30 @@
     </div>
   </div>
 
+  <script>
+  (function() {
+    var isCompatible = true;
+    var reason = "";
+    try {
+      eval("class Test {}");
+      if (!document.createElement('canvas').getContext('2d')) {
+        isCompatible = false;
+        reason = "Canvas 2D not supported.";
+      }
+    } catch (e) {
+      isCompatible = false;
+      reason = "Modern JavaScript (ES6) not supported.";
+    }
+
+    if (!isCompatible) {
+      var d = document.createElement('div');
+      d.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:#05050a;color:#ff2d78;padding:40px;font-family:sans-serif;z-index:10000;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center';
+      d.innerHTML = '<h1>INCOMPATIBLE BROWSER</h1><p>PixelPlay requires a modern browser with Canvas support.</p><p style="color:#fff;font-size:0.8rem">' + reason + '</p><button onclick="location.reload()" style="margin-top:20px;padding:10px 20px;background:#ff2d78;color:#fff;border:none;cursor:pointer">Retry</button>';
+      document.body.appendChild(d);
+      window._incompatible = true;
+    }
+  })();
+  </script>
   <script src="js/engine/BackgroundRenderer.js"></script>
   <script src="js/engine/ParticleSystem.js"></script>
   <script src="js/engine/EffectsManager.js"></script>
