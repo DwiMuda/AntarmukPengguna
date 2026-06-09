@@ -22,19 +22,27 @@ class InputManager {
       this.touches.y = t.clientY;
       this.touches.active = true;
       this.justPressed['Touch'] = true;
-      if (e.cancelable) e.preventDefault();
+      // Only prevent default if we are on the canvas and it's a gameplay interaction
+      if (e.target.tagName === 'CANVAS' && e.cancelable) {
+        // We handle the event, so stop browser from scrolling/zooming
+        e.preventDefault();
+      }
     };
 
     this.onTouchMove = (e) => {
       const t = e.touches[0];
       this.touches.x = t.clientX;
       this.touches.y = t.clientY;
-      if (e.cancelable) e.preventDefault();
+      if (e.target.tagName === 'CANVAS' && e.cancelable) {
+        e.preventDefault();
+      }
     };
 
     this.onTouchEnd = (e) => {
       this.touches.active = false;
-      if (e.cancelable) e.preventDefault();
+      if (e.target.tagName === 'CANVAS' && e.cancelable) {
+        e.preventDefault();
+      }
     };
 
     window.addEventListener('keydown', this.onKeyDown);

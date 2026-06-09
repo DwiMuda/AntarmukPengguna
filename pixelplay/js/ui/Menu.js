@@ -62,22 +62,44 @@ class Menu {
   }
 
   getCardRects(W, H) {
-    const cardW = Math.min(270, W * 0.26);
-    const cardH = Math.min(360, H * 0.55);
-    const gap = Math.min(30, W * 0.02);
-    const totalW = cardW * 3 + gap * 2;
-    const startX = (W - totalW) / 2;
-    const y = H * 0.52 - cardH / 2;
+    const isSmall = W < 600;
+    const isPortrait = H > W;
+    
+    let cardW, cardH, gap, totalW, startX, y;
+
+    if (isSmall || isPortrait) {
+      // Mobile / Portrait layout: Stacked or very narrow cards
+      cardW = Math.min(220, W * 0.8);
+      cardH = Math.min(140, H * 0.18);
+      gap = 15;
+      totalW = cardW;
+      startX = (W - totalW) / 2;
+      const totalH = cardH * 3 + gap * 2;
+      y = (H * 0.55) - totalH / 2;
+    } else {
+      // Desktop / Landscape layout
+      cardW = Math.min(270, W * 0.26);
+      cardH = Math.min(360, H * 0.55);
+      gap = Math.min(30, W * 0.02);
+      totalW = cardW * 3 + gap * 2;
+      startX = (W - totalW) / 2;
+      y = H * 0.52 - cardH / 2;
+    }
+
     const cards = [];
     const modes = ['asteroid', 'shadow', 'runner'];
     const labels = ['ASTEROID BLASTER', 'SHADOW DODGE', 'PIXEL RUNNER'];
     for (let i = 0; i < 3; i++) {
+      const cardY = (isSmall || isPortrait) ? y + i * (cardH + gap) : y;
+      const cardX = (isSmall || isPortrait) ? startX : startX + i * (cardW + gap);
+      
       cards.push({
-        x: startX + i * (cardW + gap), y, w: cardW, h: cardH,
+        x: cardX, y: cardY, w: cardW, h: cardH,
         mode: modes[i], label: labels[i],
         color: ['#00f0ff', '#a855f7', '#ff2d78'][i],
         iconColor: ['#00f0ff', '#a855f7', '#ff2d78'][i],
         highScore: 0,
+        isSmallLayout: isSmall || isPortrait
       });
     }
     return cards;
@@ -249,45 +271,58 @@ class Menu {
 
       // Game icon
       ctx.globalAlpha = 1;
-      const iconSize = Math.min(80, c.w * 0.35);
-      const iconX = c.x + c.w / 2;
-      const iconY = c.y + c.h * 0.3;
+      const iconSize = c.isSmallLayout ? c.h * 0.45 : Math.min(80, c.w * 0.35);
+      const iconX = c.isSmallLayout ? c.x + c.w * 0.2 : c.x + c.w / 2;
+      const iconY = c.isSmallLayout ? c.y + c.h / 2 : c.y + c.h * 0.3;
       this.drawGameIcon(ctx, i, iconX, iconY, iconSize, time, isHover);
 
       // Game label
       ctx.fillStyle = '#fff';
-      ctx.font = `700 ${Math.min(18, c.w * 0.07)}px Rajdhani, sans-serif`;
-      ctx.textAlign = 'center';
+      const fontSize = c.isSmallLayout ? Math.min(16, c.w * 0.08) : Math.min(18, c.w * 0.07);
+      ctx.font = `700 ${fontSize}px Rajdhani, sans-serif`;
+      ctx.textAlign = c.isSmallLayout ? 'left' : 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(c.label, c.x + c.w / 2, c.y + c.h * 0.62);
+      const labelX = c.isSmallLayout ? c.x + c.w * 0.4 : c.x + c.w / 2;
+      const labelY = c.isSmallLayout ? c.y + c.h * 0.35 : c.y + c.h * 0.62;
+      ctx.fillText(c.label, labelX, labelY);
 
-      // Difficulty
-      const starY = c.y + c.h * 0.7;
-      const starCount = [3, 3, 2][i];
-      ctx.font = `${Math.min(12, c.w * 0.05)}px sans-serif`;
-      for (let s = 0; s < 5; s++) {
-        ctx.fillStyle = s < starCount ? c.color : 'rgba(255,255,255,0.15)';
-        ctx.shadowColor = s < starCount ? c.color : 'transparent';
-        ctx.shadowBlur = s < starCount ? 6 : 0;
-        ctx.fillText('\u2605', c.x + c.w / 2 + (s - 2) * 18, starY);
+      // Play button or text
+      if (c.isSmallLayout) {
+        ctx.fillStyle = c.color;
+        ctx.font = `700 12px Outfit, sans-serif`;
+        ctx.fillText('TAP TO PLAY', labelX, c.y + c.h * 0.65);
+      } else {
+        // Difficulty
+        const starY = c.y + c.h * 0.7;
+        const starCount = [3, 3, 2][i];
+        ctx.font = `${Math.min(12, c.w * 0.05)}px sans-serif`;
+        for (let s = 0; s < 5; s++) {
+          ctx.fillStyle = s < starCount ? c.color : 'rgba(255,255,255,0.15)';
+          ctx.shadowColor = s < starCount ? c.color : 'transparent';
+          ctx.shadowBlur = s < starCount ? 6 : 0;
+          ctx.fillText('\u2605', c.x + c.w / 2 + (s - 2) * 18, starY);
+        }
+        ctx.shadowBlur = 0;
+
+        // Play button
+        const btnY = c.y + c.h * 0.82;
+        ctx.fillStyle = isHover ? c.color : 'rgba(255,255,255,0.08)';
+        ctx.globalAlpha = isHover ? 1 : 0.5;
+        this.roundRect(ctx, c.x + c.w * 0.2, btnY, c.w * 0.6, 34, 17);
+        ctx.fill();
+        ctx.fillStyle = isHover ? '#0a0a1a' : c.color;
+        ctx.globalAlpha = 1;
+        ctx.font = `700 ${Math.min(13, c.w * 0.05)}px Outfit, sans-serif`;
+        ctx.fillText('PLAY NOW', c.x + c.w / 2, btnY + 17);
       }
-      ctx.shadowBlur = 0;
-
-      // Play button
-      const btnY = c.y + c.h * 0.82;
-      ctx.fillStyle = isHover ? c.color : 'rgba(255,255,255,0.08)';
-      ctx.globalAlpha = isHover ? 1 : 0.5;
-      this.roundRect(ctx, c.x + c.w * 0.2, btnY, c.w * 0.6, 34, 17);
-      ctx.fill();
-      ctx.fillStyle = isHover ? '#0a0a1a' : c.color;
-      ctx.globalAlpha = 1;
-      ctx.font = `700 ${Math.min(13, c.w * 0.05)}px Outfit, sans-serif`;
-      ctx.fillText('PLAY NOW', c.x + c.w / 2, btnY + 17);
 
       // High score
       ctx.fillStyle = 'rgba(255,255,255,0.3)';
       ctx.font = `${Math.min(11, c.w * 0.045)}px Outfit, sans-serif`;
-      ctx.fillText('HI: ' + this.getHighScore(c.mode).toLocaleString(), c.x + c.w / 2, c.y + c.h - 18);
+      const hsX = c.isSmallLayout ? c.x + c.w - 15 : c.x + c.w / 2;
+      const hsY = c.isSmallLayout ? c.y + c.h - 15 : c.y + c.h - 18;
+      ctx.textAlign = c.isSmallLayout ? 'right' : 'center';
+      ctx.fillText('HI: ' + this.getHighScore(c.mode).toLocaleString(), hsX, hsY);
 
       ctx.restore();
     }

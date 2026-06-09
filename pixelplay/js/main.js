@@ -24,15 +24,26 @@
     menu.render(ctx, W, H, time);
   };
 
-  canvas.addEventListener('click', (e) => {
+  const handleInteraction = (e) => {
     if (gameOverBusy) return;
     const rect = canvas.getBoundingClientRect();
-    const mx = e.clientX - rect.left;
-    const my = e.clientY - rect.top;
+    const isTouch = e.type.startsWith('touch');
+    const clientX = isTouch ? e.touches[0].clientX : e.clientX;
+    const clientY = isTouch ? e.touches[0].clientY : e.clientY;
+    
+    const mx = clientX - rect.left;
+    const my = clientY - rect.top;
+
     if (engine.state === 'menu') {
       menu.handleCanvasClick(mx, my);
     }
-  });
+  };
+
+  canvas.addEventListener('click', handleInteraction);
+  canvas.addEventListener('touchstart', (e) => {
+    handleInteraction(e);
+    // Note: InputManager will handle the preventDefault if needed
+  }, { passive: true });
 
   canvas.addEventListener('mousemove', (e) => {
     if (gameOverBusy) return;

@@ -333,6 +333,62 @@ body::after {
   background: var(--accent-purple);
 }
 
+/* ---- Responsiveness & Media Queries ---- */
+@media (max-width: 768px) {
+  .gameover-content h2 {
+    font-size: 2.5rem;
+  }
+  .final-score {
+    font-size: 3rem;
+  }
+  .btn {
+    min-width: 160px;
+    padding: 0.6rem 1.5rem;
+    font-size: 1rem;
+  }
+  .hud-score-container, .hud-highscore-container {
+    padding: 0.4rem 0.8rem;
+  }
+  #hud-score, #hud-highscore {
+    font-size: 1.2rem;
+  }
+}
+
+@media (max-width: 480px) {
+  #screen-hud {
+    padding: 0.8rem;
+  }
+  .hud-label {
+    font-size: 0.55rem;
+  }
+  .gameover-content {
+    padding: 1.5rem;
+    width: 85%;
+  }
+  .gameover-content h2 {
+    font-size: 2rem;
+  }
+  .final-score {
+    font-size: 2.5rem;
+  }
+  .btn {
+    min-width: 140px;
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+  }
+  .hud-lives-container {
+    transform: scale(0.85);
+    transform-origin: right;
+  }
+}
+
+/* Portrait orientation specifically for the menu */
+@media (orientation: portrait) {
+  .screen.active .menu-content {
+    /* Potential future use if we add HTML menu items */
+  }
+}
+
 /* ---- Custom Scrollbar ---- */
 ::-webkit-scrollbar {
   width: 6px;
