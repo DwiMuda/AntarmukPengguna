@@ -22,23 +22,26 @@ class InputManager {
       this.touches.y = t.clientY;
       this.touches.active = true;
       this.justPressed['Touch'] = true;
+      if (e.cancelable) e.preventDefault();
     };
 
     this.onTouchMove = (e) => {
       const t = e.touches[0];
       this.touches.x = t.clientX;
       this.touches.y = t.clientY;
+      if (e.cancelable) e.preventDefault();
     };
 
-    this.onTouchEnd = () => {
+    this.onTouchEnd = (e) => {
       this.touches.active = false;
+      if (e.cancelable) e.preventDefault();
     };
 
     window.addEventListener('keydown', this.onKeyDown);
     window.addEventListener('keyup', this.onKeyUp);
-    window.addEventListener('touchstart', this.onTouchStart, { passive: true });
-    window.addEventListener('touchmove', this.onTouchMove, { passive: true });
-    window.addEventListener('touchend', this.onTouchEnd, { passive: true });
+    window.addEventListener('touchstart', this.onTouchStart, { passive: false });
+    window.addEventListener('touchmove', this.onTouchMove, { passive: false });
+    window.addEventListener('touchend', this.onTouchEnd, { passive: false });
   }
 
   isDown(code) {

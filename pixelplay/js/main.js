@@ -54,7 +54,7 @@
       menu.showScreen('screen-garage');
       drawGaragePreview();
     }
-  }, engine);
+  }, engine, storage);
 
   function drawGaragePreview() {
     const canvas2 = document.getElementById('garage-preview');

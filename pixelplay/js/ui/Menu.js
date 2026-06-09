@@ -17,9 +17,10 @@ class Menu {
     this.cardAnimOffset = [0, 0.15, 0.3];
   }
 
-  init(audio, callbacks, engine) {
+  init(audio, callbacks, engine, storage) {
     this.audio = audio;
     this.engine = engine;
+    this.storage = storage;
     this.onStartGame = callbacks.onStartGame;
     this.onShowLeaderboard = callbacks.onShowLeaderboard;
     this.onShowGarage = callbacks.onShowGarage;
@@ -381,11 +382,9 @@ class Menu {
   }
 
   getHighScore(mode) {
-    try {
-      const storage = new StorageManager();
-      const lb = storage.getLeaderboard(mode);
-      return lb.length > 0 ? lb[0].score : 0;
-    } catch (e) { return 0; }
+    if (!this.storage) return 0;
+    const lb = this.storage.getScores(mode);
+    return lb.length > 0 ? lb[0].score : 0;
   }
 
   drawBottomBar(ctx, W, H) {

@@ -469,4 +469,8 @@ class PixelRunner {
 
   setHUDCallback(cb) { this.hudCallback = cb; }
   setGameOverCallback(cb) { this.gameOverCallback = cb; }
+
+  destroy() {
+    // No specific cleanup needed yet
+  }
 }

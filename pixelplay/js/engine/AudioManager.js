@@ -30,6 +30,10 @@ class AudioManager {
 
   stopBGM() {
     this._bgmPlaying = false;
+    if (this._bgmInterval) {
+      clearInterval(this._bgmInterval);
+      this._bgmInterval = null;
+    }
     if (this._bgmNodes) {
       try {
         this._bgmNodes.osc1.stop();
@@ -77,7 +81,8 @@ class AudioManager {
 
     this._bgmNodes = { osc1, osc2, lfo, gain1, gain2 };
 
-    setInterval(() => {
+    if (this._bgmInterval) clearInterval(this._bgmInterval);
+    this._bgmInterval = setInterval(() => {
       if (this._bgmPlaying && this._bgmNodes) {
         const n = now + this.ctx.currentTime * 0.1;
         osc1.frequency.setValueAtTime(55 + Math.sin(n) * 10, this.ctx.currentTime + 0.1);

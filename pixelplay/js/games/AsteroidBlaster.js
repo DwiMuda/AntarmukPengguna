@@ -307,80 +307,85 @@ class AsteroidBlaster {
         }
       }
 
-      if (!hit) for (let j = this.enemies.length - 1; j >= 0; j--) {
-        const e = this.enemies[j];
-        if (Math.abs(b.x - e.x) < e.w / 2 && Math.abs(b.y - e.y) < e.h / 2) {
-          if (e.type === 'interceptor' && (e.dodgeCooldown || 0) <= 0) {
-            e.vx *= -2;
-            e.dodgeCooldown = 0.5;
-            this.engine.particles.emit(e.x, e.y, { count: 8, color: '#00f0ff', speed: 120, life: 0.2, size: 2, spread: Math.PI * 2 });
-            hit = true;
-          } else {
-            e.hp--; hit = true;
-            if (e.hp <= 0) {
-              this.enemies.splice(j, 1);
-              this.engine.particles.emitBurst(e.x, e.y, ['#ff2d78', '#a855f7'], 20);
-              this.addScore(300, 0);
-              this.powerMeter = Math.min(100, this.powerMeter + 10);
-              this.engine.effects.hitStop(0.05);
-              if (Math.random() > 0.5 && this.onAddCoins) this.onAddCoins(2);
-              this.spawnFloatingText(e.x, e.y, "+300", "#00f0ff");
-              this.audio.explosion();
-              this.engine.shake(3, 0.1);
+      if (!hit) {
+        for (let j = this.enemies.length - 1; j >= 0; j--) {
+          const e = this.enemies[j];
+          if (Math.abs(b.x - e.x) < e.w / 2 && Math.abs(b.y - e.y) < e.h / 2) {
+            if (e.type === 'interceptor' && (e.dodgeCooldown || 0) <= 0) {
+              e.vx *= -2;
+              e.dodgeCooldown = 0.5;
+              this.engine.particles.emit(e.x, e.y, { count: 8, color: '#00f0ff', speed: 120, life: 0.2, size: 2, spread: Math.PI * 2 });
+              hit = true;
             } else {
+              e.hp--; hit = true;
+              if (e.hp <= 0) {
+                this.enemies.splice(j, 1);
+                this.engine.particles.emitBurst(e.x, e.y, ['#ff2d78', '#a855f7'], 20);
+                this.addScore(300, 0);
+                this.powerMeter = Math.min(100, this.powerMeter + 10);
+                this.engine.effects.hitStop(0.05);
+                if (Math.random() > 0.5 && this.onAddCoins) this.onAddCoins(2);
+                this.spawnFloatingText(e.x, e.y, "+300", "#00f0ff");
+                this.audio.explosion();
+                this.engine.shake(3, 0.1);
+              } else {
+                this.audio.hit();
+                this.engine.particles.emit(b.x, b.y, { count: 3, color: '#facc15', speed: 60, life: 0.2, size: 2, spread: Math.PI * 2 });
+              }
+            }
+            break;
+          }
+        }
+      }
+
+      if (!hit) {
+        for (let j = this.asteroids.length - 1; j >= 0; j--) {
+          const a = this.asteroids[j];
+          if (Math.hypot(b.x - a.x, b.y - a.y) < a.radius + b.radius) {
+            a.hp--; hit = true;
+            if (a.hp <= 0) {
+              this.splitAsteroid(a);
+              this.asteroids.splice(j, 1);
+              this.spawnPowerup(a.x, a.y);
+              this.killCount++;
+              this.powerMeter = Math.min(100, this.powerMeter + 2);
+              this.engine.effects.hitStop(0.03);
+
+              this.combo++;
+              this.comboTimer = 1.5;
+              const comboLvl = Math.min(Math.floor(this.combo / 3), 5);
+              this.multiplier = 1 + comboLvl * 0.5;
+              const finalScore = 100 * this.multiplier;
+
+              this.engine.particles.emitBurst(a.x, a.y, ['#00f0ff', '#a855f7', '#facc15'], 25);
+              this.engine.particles.emitRing(a.x, a.y, '#00f0ff', a.radius);
+              this.spawnFloatingText(a.x, a.y, `+${finalScore}`, '#00f0ff');
+
+              if (this.killCount % 10 === 0) {
+                this.spawnFloatingText(this.ship.x, this.ship.y - 60, `${this.killCount} KILL STREAK!`, '#facc15');
+              }
+
+              if (Math.random() > 0.6 && this.onAddCoins) {
+                this.onAddCoins(1);
+                this.spawnFloatingText(a.x, a.y - 20, '+1' + '\u25C7', '#facc15');
+              }
+
+              this.audio.explosion();
+              this.engine.shake(5, 0.1);
+              if (comboLvl >= 1) this.audio.combo();
+              this.addScore(100, comboLvl);
+            } else {
+              this.engine.particles.emit(a.x, a.y, { count: 5, color: '#ff2d78', speed: 60, life: 0.2, size: 2, spread: Math.PI * 2 });
               this.audio.hit();
-              this.engine.particles.emit(b.x, b.y, { count: 3, color: '#facc15', speed: 60, life: 0.2, size: 2, spread: Math.PI * 2 });
             }
+            break;
           }
-          break;
         }
       }
 
-      if (!hit) for (let j = this.asteroids.length - 1; j >= 0; j--) {
-        const a = this.asteroids[j];
-        if (Math.hypot(b.x - a.x, b.y - a.y) < a.radius + b.radius) {
-          a.hp--; hit = true;
-          this.bullets.splice(i, 1);
-          if (a.hp <= 0) {
-            this.splitAsteroid(a);
-            this.asteroids.splice(j, 1);
-            this.spawnPowerup(a.x, a.y);
-            this.killCount++;
-            this.powerMeter = Math.min(100, this.powerMeter + 2);
-            this.engine.effects.hitStop(0.03);
-
-            this.combo++;
-            this.comboTimer = 1.5;
-            const comboLvl = Math.min(Math.floor(this.combo / 3), 5);
-            this.multiplier = 1 + comboLvl * 0.5;
-            const finalScore = 100 * this.multiplier;
-
-            this.engine.particles.emitBurst(a.x, a.y, ['#00f0ff', '#a855f7', '#facc15'], 25);
-            this.engine.particles.emitRing(a.x, a.y, '#00f0ff', a.radius);
-            this.spawnFloatingText(a.x, a.y, `+${finalScore}`, '#00f0ff');
-
-            if (this.killCount % 10 === 0) {
-              this.spawnFloatingText(this.ship.x, this.ship.y - 60, `${this.killCount} KILL STREAK!`, '#facc15');
-            }
-
-            if (Math.random() > 0.6 && this.onAddCoins) {
-              this.onAddCoins(1);
-              this.spawnFloatingText(a.x, a.y - 20, '+1' + '\u25C7', '#facc15');
-            }
-
-            this.audio.explosion();
-            this.engine.shake(5, 0.1);
-            if (comboLvl >= 1) this.audio.combo();
-            this.addScore(100, comboLvl);
-          } else {
-            this.engine.particles.emit(a.x, a.y, { count: 5, color: '#ff2d78', speed: 60, life: 0.2, size: 2, spread: Math.PI * 2 });
-            this.audio.hit();
-          }
-          break;
-        }
+      if (hit) {
+        this.bullets.splice(i, 1);
       }
-
-      if (hit) this.bullets.splice(i, 1);
     }
 
     // Asteroids
@@ -1019,4 +1024,8 @@ class AsteroidBlaster {
 
   setHUDCallback(cb) { this.hudCallback = cb; }
   setGameOverCallback(cb) { this.gameOverCallback = cb; }
+
+  destroy() {
+    window.removeEventListener('resize', this._onResize);
+  }
 }
