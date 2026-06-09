@@ -58,6 +58,12 @@ class PixelRunner {
     this.animationTimer = 0;
     this.landDustTimer = 0;
 
+    this._onResize = () => {
+      this.groundY = this.engine.height * 0.72;
+      if (this.player.onGround) this.player.y = this.groundY;
+    };
+    window.addEventListener('resize', this._onResize);
+
     engine.particles.clear();
     engine.audio.startBGM();
   }
@@ -159,8 +165,9 @@ class PixelRunner {
       }
       const px = this.player.x, py = this.player.y;
       const pw = this.player.w, ph = this.player.h;
-      if (px + pw * 0.2 < o.x + o.w && px + pw * 0.8 > o.x &&
-          py + ph * 0.1 < o.y + o.h && py + ph * 0.9 > o.y) {
+      // Forgiving hitbox: 0.75 scale
+      if (px + pw * 0.3 < o.x + o.w * 0.8 && px + pw * 0.7 > o.x + o.w * 0.2 &&
+          py + ph * 0.2 < o.y + o.h * 0.8 && py + ph * 0.8 > o.y + o.h * 0.2) {
         this.die();
         return;
       }
@@ -471,6 +478,6 @@ class PixelRunner {
   setGameOverCallback(cb) { this.gameOverCallback = cb; }
 
   destroy() {
-    // No specific cleanup needed yet
+    window.removeEventListener('resize', this._onResize);
   }
 }

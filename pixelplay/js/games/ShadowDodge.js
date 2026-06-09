@@ -61,6 +61,14 @@ class ShadowDodge {
     this.lasers = [];
     this.draftingTime = 0;
 
+    this._onResize = () => {
+      this.laneWidth = Math.min(80, this.engine.width / this.laneCount);
+      this.offsetX = (this.engine.width - this.laneWidth * this.laneCount) / 2;
+      this.updatePlayerPos();
+      this.player.y = this.engine.height - 80;
+    };
+    window.addEventListener('resize', this._onResize);
+
     engine.particles.clear();
     engine.audio.startBGM();
   }
@@ -164,8 +172,8 @@ class ShadowDodge {
         continue;
       }
 
-      if (Math.abs(o.x - this.player.x) < (o.size + this.player.size) / 2 &&
-          Math.abs(o.y - this.player.y) < (o.size + this.player.size) / 2) {
+      if (Math.abs(o.x - this.player.x) < (o.size + this.player.size) * 0.35 &&
+          Math.abs(o.y - this.player.y) < (o.size + this.player.size) * 0.35) {
         this.engine.effects.hitStop(0.1);
         this.die();
         return;
@@ -517,6 +525,6 @@ class ShadowDodge {
   setGameOverCallback(cb) { this.gameOverCallback = cb; }
 
   destroy() {
-    // No specific cleanup needed yet
+    window.removeEventListener('resize', this._onResize);
   }
 }

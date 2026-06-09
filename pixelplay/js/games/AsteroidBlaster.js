@@ -210,6 +210,14 @@ class AsteroidBlaster {
     this.score += Math.floor(base * (1 + combo * 0.5));
   }
 
+  activateCyberBurst() {
+    this.powerMeter = 0;
+    this.cyberBurst = 5;
+    this.engine.flash('#ff2d78', 0.2);
+    this.engine.shake(10, 0.5);
+    this.spawnFloatingText(this.ship.x, this.ship.y - 40, "CYBER-BURST ACTIVE!", '#ff2d78');
+  }
+
   update(dt) {
     if (this.gameOver) return;
 
@@ -228,7 +236,9 @@ class AsteroidBlaster {
       down: this.input.isDown('ArrowDown') || this.input.isDown('KeyS'),
     };
 
-    if ((this.input.wasPressed('Space') || this.cyberBurst > 0) && this.shootCooldown <= 0) {
+    const isFiring = this.input.isDown('Space') || this.input.wasPressed('Space') || this.input.isTouchActive() || this.cyberBurst > 0;
+
+    if (isFiring && this.shootCooldown <= 0) {
       const cd = this.cyberBurst > 0 ? 0.05 : (this.powerupTimers.rapid > 0 ? this.baseCooldown * 0.4 : this.baseCooldown);
       this.shootCooldown = cd;
 
@@ -242,15 +252,14 @@ class AsteroidBlaster {
       this.engine.shake(this.cyberBurst > 0 ? 3 : 1, 0.03);
     }
 
-    // Power Meter activation
+    // Power Meter activation - also activate on double tap or high meter for mobile
     if (this.input.wasPressed('KeyQ') || this.input.wasPressed('KeyE')) {
       if (this.powerMeter >= 100) {
-        this.powerMeter = 0;
-        this.cyberBurst = 5;
-        this.engine.flash('#ff2d78', 0.2);
-        this.engine.shake(10, 0.5);
-        this.spawnFloatingText(this.ship.x, this.ship.y - 40, "CYBER-BURST ACTIVE!", '#ff2d78');
+        this.activateCyberBurst();
       }
+    } else if (this.powerMeter >= 100 && this.input.isTouchActive() && Math.random() < 0.01) {
+      // Auto-activate for mobile if they can't press Q/E
+      this.activateCyberBurst();
     }
 
     if (this.input.isTouchActive()) {
@@ -341,7 +350,8 @@ class AsteroidBlaster {
       if (!hit) {
         for (let j = this.asteroids.length - 1; j >= 0; j--) {
           const a = this.asteroids[j];
-          if (Math.hypot(b.x - a.x, b.y - a.y) < a.radius + b.radius) {
+          // Forgiving hitboxes: 0.75 scale
+          if (Math.hypot(b.x - a.x, b.y - a.y) < (a.radius * 0.75) + b.radius) {
             a.hp--; hit = true;
             if (a.hp <= 0) {
               this.splitAsteroid(a);
@@ -395,7 +405,8 @@ class AsteroidBlaster {
       a.y += a.vy * dt;
       a.rotation += a.rotSpeed * dt;
       if (a.y > height + a.radius + 50) { this.asteroids.splice(i, 1); continue; }
-      if (Math.hypot(this.ship.x - a.x, this.ship.y - a.y) < a.radius + this.ship.w / 2) {
+      // Forgiving hitbox: 0.7 scale for player vs asteroid
+      if (Math.hypot(this.ship.x - a.x, this.ship.y - a.y) < (a.radius * 0.7) + (this.ship.w * 0.4)) {
         this.asteroids.splice(i, 1);
         this.hitPlayer();
       }
