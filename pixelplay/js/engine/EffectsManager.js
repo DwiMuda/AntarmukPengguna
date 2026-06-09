@@ -23,6 +23,11 @@ class EffectsManager {
     this.shakeDecay = this.shakeIntensity / (duration || 0.3);
   }
 
+  setBorderGlow(color, intensity) {
+    this.borderGlowColor = color || '#00f0ff';
+    this.borderGlowIntensity = intensity || 0;
+  }
+
   flash(color, duration) {
     this.flashColor = color || '#ffffff';
     this.flashAlpha = 0.4;

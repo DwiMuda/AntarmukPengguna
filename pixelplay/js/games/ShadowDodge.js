@@ -101,8 +101,8 @@ class ShadowDodge {
     this.player.x += (this.player.targetX - this.player.x) * 12 * dt;
 
     this.difficultyTimer += dt;
-    this.speed = 200 + this.difficultyTimer * 15;
-    this.spawnInterval = Math.max(0.35, 1.2 - this.difficultyTimer * 0.015);
+    this.speed = 200 + this.difficultyTimer * 12;
+    this.spawnInterval = Math.max(0.45, 1.3 - this.difficultyTimer * 0.012);
 
     // Lasers
     this.laserTimer += dt;
@@ -222,6 +222,41 @@ class ShadowDodge {
     const { width, height, bgRenderer, totalTime } = this.engine;
 
     bgRenderer.drawShadowBackground(totalTime, this.speed);
+
+    // Lasers
+    for (const l of this.lasers) {
+      for (const laneIdx of l.lanes) {
+        const lx = this.offsetX + laneIdx * this.laneWidth;
+        if (l.warn > 0) {
+          // Warning
+          ctx.fillStyle = `rgba(255, 45, 120, ${0.1 + Math.sin(totalTime * 15) * 0.1})`;
+          ctx.fillRect(lx, 0, this.laneWidth, height);
+          ctx.strokeStyle = '#ff2d78';
+          ctx.lineWidth = 2;
+          ctx.setLineDash([10, 10]);
+          ctx.beginPath();
+          ctx.moveTo(lx + this.laneWidth / 2, 0);
+          ctx.lineTo(lx + this.laneWidth / 2, height);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        } else {
+          // Active Laser
+          const grad = ctx.createLinearGradient(lx, 0, lx + this.laneWidth, 0);
+          grad.addColorStop(0, 'rgba(255, 45, 120, 0)');
+          grad.addColorStop(0.5, '#ff2d78');
+          grad.addColorStop(1, 'rgba(255, 45, 120, 0)');
+          ctx.fillStyle = grad;
+          ctx.globalAlpha = 0.6 + Math.random() * 0.4;
+          ctx.fillRect(lx, 0, this.laneWidth, height);
+          ctx.shadowColor = '#ff2d78';
+          ctx.shadowBlur = 20;
+          ctx.fillStyle = '#fff';
+          ctx.fillRect(lx + this.laneWidth / 2 - 2, 0, 4, height);
+          ctx.shadowBlur = 0;
+          ctx.globalAlpha = 1;
+        }
+      }
+    }
 
     // Lane LED strip effect
     for (let i = 0; i < this.laneCount; i++) {

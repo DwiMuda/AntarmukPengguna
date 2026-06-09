@@ -253,22 +253,26 @@
     const highScoreMsg = document.getElementById('screen-gameover').querySelector('.final-highscore');
     const nameInput = document.querySelector('.name-input');
 
-    // Backup: show panel after 2s regardless of animation
+    // Backup: show panel after 2.5s regardless of animation to prevent lockup
     var backupTimer = setTimeout(function () {
       if (gameOverBusy) {
-        gameOverBusy = false;
-        finalScoreEl.textContent = gameOverScoreTarget.toLocaleString();
-        if (isHighScore && score > 0) {
-          highScoreMsg.style.display = 'block';
-          nameInput.classList.remove('hidden');
-        } else {
-          highScoreMsg.style.display = 'none';
-          nameInput.classList.add('hidden');
-        }
-        menu.showScreen('screen-gameover');
-        engine.menuRenderer = function (ctx2, W2, H2, time2) { menu.render(ctx2, W2, H2, time2); };
+        completeGameOver();
       }
-    }, 2000);
+    }, 2500);
+
+    function completeGameOver() {
+      gameOverBusy = false;
+      finalScoreEl.textContent = gameOverScoreTarget.toLocaleString();
+      if (isHighScore && gameOverScoreTarget > 0) {
+        highScoreMsg.style.display = 'block';
+        nameInput.classList.remove('hidden');
+      } else {
+        highScoreMsg.style.display = 'none';
+        nameInput.classList.add('hidden');
+      }
+      menu.showScreen('screen-gameover');
+      engine.menuRenderer = function (ctx2, W2, H2, time2) { menu.render(ctx2, W2, H2, time2); };
+    }
 
     engine.menuRenderer = function (ctx, W, H, time) {
       try {
@@ -310,25 +314,13 @@
 
           if (ct >= 1) {
             clearTimeout(backupTimer);
-            finalScoreEl.textContent = gameOverScoreCurrent.toLocaleString();
-            if (isHighScore && score > 0) {
-              highScoreMsg.style.display = 'block';
-              nameInput.classList.remove('hidden');
-            } else {
-              highScoreMsg.style.display = 'none';
-              nameInput.classList.add('hidden');
-            }
-            gameOverBusy = false;
-            menu.showScreen('screen-gameover');
-            engine.menuRenderer = function (ctx2, W2, H2, time2) { menu.render(ctx2, W2, H2, time2); };
+            completeGameOver();
           }
         }
       } catch (e) {
         console.error('gameOverAnimation error:', e);
         clearTimeout(backupTimer);
-        gameOverBusy = false;
-        menu.showScreen('screen-gameover');
-        engine.menuRenderer = function (ctx2, W2, H2, time2) { menu.render(ctx2, W2, H2, time2); };
+        completeGameOver();
       }
     };
 
