@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PixelPlay — Arcade Game</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app">
+    <canvas id="gameCanvas"></canvas>
+    <div id="ui-overlay">
+      <div id="screen-menu" class="screen active">
+        <div class="menu-content"></div>
+      </div>
+
+      <div id="screen-hud" class="screen hidden">
+        <div class="hud-top">
+          <div class="hud-score-container">
+            <span class="hud-label">SCORE</span>
+            <span id="hud-score">0</span>
+          </div>
+          <div class="hud-highscore-container">
+            <span class="hud-label">HI-SCORE</span>
+            <span id="hud-highscore">0</span>
+          </div>
+        </div>
+        <div class="hud-bottom">
+          <div class="hud-stats-left">
+            <div id="hud-combo-container" class="hidden">
+              <span id="hud-combo"></span>
+              <span id="hud-multiplier"></span>
+            </div>
+          </div>
+          <div class="hud-stats-right">
+            <div class="hud-coins">
+              <span class="coin-icon">◎</span>
+              <span id="hud-coins-val">0</span>
+            </div>
+            <div id="hud-lives" class="hud-lives-container">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="screen-gameover" class="screen hidden">
+        <div class="gameover-content">
+          <h2>GAME OVER</h2>
+          <p class="final-score">Score: <span id="final-score">0</span></p>
+          <p class="final-highscore">New High Score!</p>
+          <div class="name-input hidden">
+            <p>Enter your name:</p>
+            <input type="text" id="player-name" maxlength="12" placeholder="YOUR NAME">
+            <button class="btn btn-small" id="save-score">Save</button>
+          </div>
+          <div class="gameover-buttons">
+            <button class="btn btn-primary" data-action="retry">Retry</button>
+            <button class="btn btn-secondary" data-action="menu">Menu</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="screen-leaderboard" class="screen hidden">
+        <div class="leaderboard-content">
+          <h2>LEADERBOARD</h2>
+          <div class="lb-tabs">
+            <button class="lb-tab active" data-mode="asteroid">Asteroid</button>
+            <button class="lb-tab" data-mode="shadow">Shadow</button>
+            <button class="lb-tab" data-mode="runner">Runner</button>
+          </div>
+          <div id="lb-entries">
+            <div class="lb-empty">No scores yet. Play a game!</div>
+          </div>
+          <button class="btn btn-secondary" data-action="menu">Back</button>
+        </div>
+      </div>
+
+      <div id="screen-garage" class="screen hidden">
+        <div class="garage-content">
+          <h2>GARAGE</h2>
+          <div class="coin-display">
+            <span class="coin-icon">◎</span> <span id="garage-coins">0</span>
+          </div>
+          <div class="garage-preview-wrap">
+            <canvas id="garage-preview" width="280" height="160"></canvas>
+          </div>
+          <div class="upgrades-list">
+            <div class="upgrade-item">
+              <div class="upg-info">
+                <span class="upg-name">Hull Armor</span>
+                <span class="upg-desc">Increases starting lives.</span>
+              </div>
+              <div class="upg-action">
+                <div class="upg-bar-track">
+                  <div class="upg-bar-fill" id="upg-bar-health"></div>
+                </div>
+                <span class="upg-level" id="upg-lvl-health">Lv.0</span>
+                <button class="btn btn-small upg-btn" id="btn-buy-health">Buy (100◎)</button>
+              </div>
+            </div>
+            <div class="upgrade-item">
+              <div class="upg-info">
+                <span class="upg-name">Blaster Core</span>
+                <span class="upg-desc">Increases fire rate limit.</span>
+              </div>
+              <div class="upg-action">
+                <div class="upg-bar-track">
+                  <div class="upg-bar-fill" id="upg-bar-fireRate"></div>
+                </div>
+                <span class="upg-level" id="upg-lvl-fireRate">Lv.0</span>
+                <button class="btn btn-small upg-btn" id="btn-buy-fireRate">Buy (150◎)</button>
+              </div>
+            </div>
+            <div class="upgrade-item">
+              <div class="upg-info">
+                <span class="upg-name">Thrusters</span>
+                <span class="upg-desc">Increases movement speed.</span>
+              </div>
+              <div class="upg-action">
+                <div class="upg-bar-track">
+                  <div class="upg-bar-fill" id="upg-bar-speed"></div>
+                </div>
+                <span class="upg-level" id="upg-lvl-speed">Lv.0</span>
+                <button class="btn btn-small upg-btn" id="btn-buy-speed">Buy (150◎)</button>
+              </div>
+            </div>
+          </div>
+          <button class="btn btn-secondary" data-action="menu">Back</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/engine/BackgroundRenderer.js"></script>
+  <script src="js/engine/ParticleSystem.js"></script>
+  <script src="js/engine/EffectsManager.js"></script>
+  <script src="js/engine/GameEngine.js"></script>
+  <script src="js/engine/InputManager.js"></script>
+  <script src="js/engine/AudioManager.js"></script>
+  <script src="js/engine/StorageManager.js"></script>
+  <script src="js/ui/Menu.js"></script>
+  <script src="js/ui/HUD.js"></script>
+  <script src="js/ui/Leaderboard.js"></script>
+  <script src="js/games/AsteroidBlaster.js"></script>
+  <script src="js/games/ShadowDodge.js"></script>
+  <script src="js/games/PixelRunner.js"></script>
+  <script>
+  window.onerror = function(msg, url, line, col, err) {
+    var d = document.createElement('div');
+    d.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:#ff2d78;color:#fff;padding:12px;font:12px monospace;z-index:9999;white-space:pre-wrap';
+    d.textContent = 'ERROR: ' + msg + ' (line ' + line + ')';
+    document.body.appendChild(d);
+    console.error('GLOBAL ERROR:', msg, url, line, col, err);
+  };
+  </script>
+  <script src="js/main.js"></script>
+</body>
+</html>
