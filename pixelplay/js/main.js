@@ -330,10 +330,9 @@
   document.getElementById('save-score').addEventListener('click', () => {
     const nameInput2 = document.getElementById('player-name');
     const name = nameInput2.value.trim() || 'PLAYER';
-    const score2 = parseInt(document.getElementById('final-score').textContent.replace(/,/g, ''));
     const mode2 = menu._lastMode;
-    if (mode2) {
-      storage.addScore(mode2, name, score2);
+    if (mode2 && gameOverScoreTarget > 0) {
+      storage.addScore(mode2, name, gameOverScoreTarget);
       nameInput2.value = '';
       document.querySelector('.name-input').classList.add('hidden');
       leaderboard.show();
