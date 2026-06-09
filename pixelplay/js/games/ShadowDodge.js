@@ -23,7 +23,9 @@ class ShadowDodge {
     this.laneWidth = 0;
     this.offsetX = 0;
     this.coinTimer = 0;
+    this.coinSpawnTimer = 0;
     this.laserTimer = 0;
+    this.lasers = [];
     this.draftingTime = 0;
   }
 
@@ -57,25 +59,24 @@ class ShadowDodge {
     this.difficultyTimer = 0;
     this.flashTimer = 0;
     this.coinTimer = 0;
+    this.coinSpawnTimer = 0;
     this.laserTimer = 0;
     this.lasers = [];
     this.draftingTime = 0;
 
-    this._onResize = () => {
-      this.laneWidth = Math.min(80, this.engine.width / this.laneCount);
-      this.offsetX = (this.engine.width - this.laneWidth * this.laneCount) / 2;
-      this.updatePlayerPos();
-      this.player.y = this.engine.height - 80;
-    };
-    window.addEventListener('resize', this._onResize);
-
-    engine.particles.clear();
     engine.audio.startBGM();
   }
 
+  handleResize(width, height) {
+    this.laneWidth = Math.min(80, width / this.laneCount);
+    this.offsetX = (width - this.laneWidth * this.laneCount) / 2;
+    this.updatePlayerPos();
+    this.player.y = height - 80;
+  }
+
   updatePlayerPos() {
-    this.player.x = this.offsetX + this.player.lane * this.laneWidth + this.laneWidth / 2;
-    this.player.targetX = this.player.x;
+    this.player.targetX = this.offsetX + this.player.lane * this.laneWidth + this.laneWidth / 2;
+    if (this.player.x === 0) this.player.x = this.player.targetX;
   }
 
   update(dt) {
@@ -197,6 +198,18 @@ class ShadowDodge {
       }
     }
 
+    // Coin spawn
+    this.coinSpawnTimer += dt;
+    if (this.coinSpawnTimer > 2.5) {
+      this.coinSpawnTimer = 0;
+      const lane = Math.floor(Math.random() * this.laneCount);
+      this.coins.push({
+        lane, size: 10,
+        x: this.offsetX + lane * this.laneWidth + this.laneWidth / 2,
+        y: -20,
+      });
+    }
+
     // Combo timer
     if (this.comboTimer > 0) {
       this.comboTimer -= dt;
@@ -210,7 +223,6 @@ class ShadowDodge {
       }
     }
 
-    this.engine.particles.update(dt);
     this.flashTimer = Math.max(0, this.flashTimer - dt);
 
     if (this.hudCallback) {
@@ -485,52 +497,112 @@ class ShadowDodge {
       ctx.restore();
     }
 
-    // Player
+    // Player — Energy Crystal
     if (!this.gameOver) {
       const p = this.player;
+      const sz = p.size / 2;
+      const t = totalTime;
+
       ctx.save();
       ctx.translate(p.x, p.y);
 
-      // Glow
+      // ===== OUTER GLOW =====
       ctx.shadowColor = '#00f0ff';
-      ctx.shadowBlur = 25;
+      ctx.shadowBlur = 35;
 
-      // Outer hexagon — gradient fill
-      const pg = ctx.createRadialGradient(-3, -3, 0, 0, 0, p.size / 2);
-      pg.addColorStop(0, '#67e8f9');
-      pg.addColorStop(0.5, '#00f0ff');
-      pg.addColorStop(1, '#0891b2');
-      ctx.fillStyle = pg;
+      // ===== MAIN CRYSTAL (octagon) =====
+      const cGrad = ctx.createRadialGradient(-3, -4, 0, 0, 0, sz);
+      cGrad.addColorStop(0, '#ffffff');
+      cGrad.addColorStop(0.2, '#67e8f9');
+      cGrad.addColorStop(0.6, '#00f0ff');
+      cGrad.addColorStop(1, '#0891b2');
+      ctx.fillStyle = cGrad;
       ctx.beginPath();
-      for (let i = 0; i < 6; i++) {
-        const a = (i / 6) * Math.PI * 2 - Math.PI / 2 + totalTime;
-        const r = p.size / 2;
-        ctx[i === 0 ? 'moveTo' : 'lineTo'](Math.cos(a) * r, Math.sin(a) * r);
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2 - Math.PI / 2 + t * 0.3;
+        const r = sz;
+        const wobble = 1 + Math.sin(t * 2 + i * 1.5) * 0.04;
+        ctx[i === 0 ? 'moveTo' : 'lineTo'](Math.cos(a) * r * wobble, Math.sin(a) * r * wobble);
       }
       ctx.closePath();
       ctx.fill();
 
-      // Inner rotating ring
+      // Crystal edge glow
       ctx.shadowBlur = 0;
-      ctx.strokeStyle = '#fff';
-      ctx.lineWidth = 1;
-      ctx.globalAlpha = 0.2;
+      ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+      ctx.lineWidth = 1.5;
       ctx.beginPath();
-      for (let i = 0; i < 6; i++) {
-        const a = (i / 6) * Math.PI * 2 - Math.PI / 2 - totalTime * 2;
-        const r = p.size * 0.4;
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2 - Math.PI / 2 + t * 0.3;
+        const r = sz;
+        const wobble = 1 + Math.sin(t * 2 + i * 1.5) * 0.04;
+        ctx[i === 0 ? 'moveTo' : 'lineTo'](Math.cos(a) * r * wobble, Math.sin(a) * r * wobble);
+      }
+      ctx.closePath();
+      ctx.stroke();
+
+      // ===== INNER FACETS =====
+      for (let layer = 0; layer < 3; layer++) {
+        const ratio = 0.55 - layer * 0.15;
+        const speed = 1.5 + layer * 0.5;
+        const facetGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, sz * ratio);
+        facetGrad.addColorStop(0, `rgba(255,255,255,${0.15 - layer * 0.04})`);
+        facetGrad.addColorStop(0.7, `rgba(0,240,255,${0.1 - layer * 0.03})`);
+        facetGrad.addColorStop(1, 'rgba(0,240,255,0)');
+        ctx.fillStyle = facetGrad;
+        ctx.beginPath();
+        for (let i = 0; i < 8; i++) {
+          const a = (i / 8) * Math.PI * 2 - Math.PI / 2 - t * speed + layer;
+          ctx[i === 0 ? 'moveTo' : 'lineTo'](Math.cos(a) * sz * ratio, Math.sin(a) * sz * ratio);
+        }
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      // ===== ROTATING ENERGY RING =====
+      ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+      ctx.lineWidth = 1.5;
+      ctx.globalAlpha = 0.4 + Math.sin(t * 1.5) * 0.15;
+      ctx.beginPath();
+      for (let i = 0; i < 12; i++) {
+        const a = (i / 12) * Math.PI * 2 - Math.PI / 2 - t * 1.2;
+        const r = sz * 0.7 + Math.sin(t * 3 + i) * 3;
         ctx[i === 0 ? 'moveTo' : 'lineTo'](Math.cos(a) * r, Math.sin(a) * r);
       }
       ctx.closePath();
       ctx.stroke();
       ctx.globalAlpha = 1;
 
-      // Center dot
-      ctx.shadowBlur = 10;
+      // Ring energy nodes
+      for (let i = 0; i < 4; i++) {
+        const a = (i / 4) * Math.PI * 2 - Math.PI / 2 - t * 1.2;
+        const r = sz * 0.7;
+        ctx.shadowColor = '#00f0ff';
+        ctx.shadowBlur = 8 + Math.sin(t * 4 + i) * 3;
+        ctx.fillStyle = i % 2 === 0 ? '#00f0ff' : '#a855f7';
+        ctx.beginPath();
+        ctx.arc(Math.cos(a) * r, Math.sin(a) * r, 2.5 + Math.sin(t * 3 + i) * 0.8, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // ===== PULSING CORE =====
       ctx.shadowColor = '#00f0ff';
-      ctx.fillStyle = '#fff';
+      ctx.shadowBlur = 20;
+      const coreR = 4 + Math.sin(t * 4) * 1.5;
+      const coreGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, coreR);
+      coreGrad.addColorStop(0, '#ffffff');
+      coreGrad.addColorStop(0.5, '#67e8f9');
+      coreGrad.addColorStop(1, 'rgba(0,240,255,0)');
+      ctx.fillStyle = coreGrad;
       ctx.beginPath();
-      ctx.arc(0, 0, 4 + Math.sin(totalTime * 3) * 1, 0, Math.PI * 2);
+      ctx.arc(0, 0, coreR, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Core flash
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = `rgba(255,255,255,${0.1 + Math.sin(t * 6) * 0.08})`;
+      ctx.beginPath();
+      ctx.arc(0, 0, 2, 0, Math.PI * 2);
       ctx.fill();
 
       ctx.shadowBlur = 0;
@@ -560,6 +632,5 @@ class ShadowDodge {
   setGameOverCallback(cb) { this.gameOverCallback = cb; }
 
   destroy() {
-    window.removeEventListener('resize', this._onResize);
   }
 }

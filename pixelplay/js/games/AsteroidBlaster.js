@@ -80,12 +80,13 @@ class AsteroidBlaster {
     this.spawnAsteroid();
 
     engine.particles.clear();
-    engine.audio.startBGM();
+    this.audio.startBGM();
+  }
 
-    this._onResize = () => {
-      if (!this.gameOver) this.ship.y = engine.height - 80;
-    };
-    window.addEventListener('resize', this._onResize);
+  handleResize(width, height) {
+    if (!this.gameOver && this.ship) {
+      this.ship.y = height - 80;
+    }
   }
 
   spawnAsteroid() {
@@ -236,6 +237,29 @@ class AsteroidBlaster {
       down: this.input.isDown('ArrowDown') || this.input.isDown('KeyS'),
     };
 
+    let dx = 0, dy = 0;
+    if (this.keys.left) dx -= 1;
+    if (this.keys.right) dx += 1;
+    if (this.keys.up) dy -= 1;
+    if (this.keys.down) dy += 1;
+
+    if (this.input.isTouchActive()) {
+      const tx = this.input.getTouchX();
+      const ty = this.input.getTouchY();
+      
+      const dx_touch = tx - this.ship.x;
+      const dy_touch = ty - this.ship.y;
+      const dist = Math.sqrt(dx_touch * dx_touch + dy_touch * dy_touch);
+      
+      if (dist > 5) {
+        dx = dx_touch / dist;
+        dy = dy_touch / dist;
+      }
+    } else {
+      const len = Math.sqrt(dx * dx + dy * dy);
+      if (len > 0) { dx /= len; dy /= len; }
+    }
+
     const isFiring = this.input.isDown('Space') || this.input.wasPressed('Space') || this.input.isTouchActive() || this.cyberBurst > 0;
 
     if (isFiring && this.shootCooldown <= 0) {
@@ -252,31 +276,19 @@ class AsteroidBlaster {
       this.engine.shake(this.cyberBurst > 0 ? 3 : 1, 0.03);
     }
 
-    // Power Meter activation - also activate on double tap or high meter for mobile
     if (this.input.wasPressed('KeyQ') || this.input.wasPressed('KeyE')) {
       if (this.powerMeter >= 100) {
         this.activateCyberBurst();
       }
     } else if (this.powerMeter >= 100 && this.input.isTouchActive() && Math.random() < 0.01) {
-      // Auto-activate for mobile if they can't press Q/E
       this.activateCyberBurst();
     }
 
-    if (this.input.isTouchActive()) {
-      const tx = this.input.getTouchX();
-      this.keys.left = tx < width / 2 - 40;
-      this.keys.right = tx > width / 2 + 40;
-    }
+    let speed = this.ship.speed;
+    if (this.input.isTouchActive()) speed *= 1.2;
 
-    let dx = 0, dy = 0;
-    if (this.keys.left) dx -= 1;
-    if (this.keys.right) dx += 1;
-    if (this.keys.up) dy -= 1;
-    if (this.keys.down) dy += 1;
-    const len = Math.sqrt(dx * dx + dy * dy);
-    if (len > 0) { dx /= len; dy /= len; }
-    this.ship.x += dx * this.ship.speed * dt;
-    this.ship.y += dy * this.ship.speed * dt;
+    this.ship.x += dx * speed * dt;
+    this.ship.y += dy * speed * dt;
     this.ship.x = Math.max(this.ship.w / 2, Math.min(width - this.ship.w / 2, this.ship.x));
     this.ship.y = Math.max(this.ship.h / 2, Math.min(height - this.ship.h / 2, this.ship.y));
 
@@ -430,7 +442,7 @@ class AsteroidBlaster {
           this.enemyBullets.push({ x: e.x + 20, y: e.y + 10, vx: 40, vy: 280, radius: 3 });
         }
       }
-      if (Math.abs(this.ship.x - e.x) < (e.w / 2 + this.ship.w / 2) && Math.abs(this.ship.y - e.y) < (e.h / 2 + this.ship.y / 2)) {
+      if (Math.abs(this.ship.x - e.x) < (e.w / 2 + this.ship.w / 2) && Math.abs(this.ship.y - e.y) < (e.h / 2 + this.ship.h / 2)) {
         this.enemies.splice(i, 1);
         this.hitPlayer();
       }
@@ -516,9 +528,6 @@ class AsteroidBlaster {
       ft.life -= dt;
       if (ft.life <= 0) this.floatingTexts.splice(i, 1);
     }
-
-    // Persist engine particles
-    this.engine.particles.update(dt);
 
     if (this.hudCallback) {
       this.hudCallback({
@@ -709,19 +718,24 @@ class AsteroidBlaster {
 
     // Ship
     if (!this.gameOver) {
-      ctx.save();
-      ctx.translate(this.ship.x, this.ship.y);
+      const s = this.ship;
+      const w = s.w;
+      const h = s.h;
+      const t = totalTime;
 
-      if (this.ship.shield) {
+      ctx.save();
+      ctx.translate(s.x, s.y);
+
+      // Shield bubble
+      if (s.shield) {
         ctx.strokeStyle = 'rgba(0, 240, 255, 0.8)';
         ctx.lineWidth = 2;
         ctx.shadowColor = '#00f0ff';
         ctx.shadowBlur = 20;
         ctx.beginPath();
-        ctx.arc(0, 0, this.ship.w * 0.9, 0, Math.PI * 2);
+        ctx.arc(0, 0, w * 0.9, 0, Math.PI * 2);
         ctx.stroke();
-
-        const sg = ctx.createRadialGradient(0, 0, 0, 0, 0, this.ship.w * 0.9);
+        const sg = ctx.createRadialGradient(0, 0, 0, 0, 0, w * 0.9);
         sg.addColorStop(0, 'rgba(0,240,255,0.02)');
         sg.addColorStop(0.7, 'rgba(0,240,255,0.05)');
         sg.addColorStop(1, 'rgba(0,240,255,0.15)');
@@ -729,44 +743,124 @@ class AsteroidBlaster {
         ctx.fill();
       }
 
-      // Ship body — filled gradient
-      const sg2 = ctx.createLinearGradient(-this.ship.w / 2, -this.ship.h / 2, this.ship.w / 2, this.ship.h / 2);
-      sg2.addColorStop(0, '#00f0ff');
-      sg2.addColorStop(0.5, '#06b6d4');
-      sg2.addColorStop(1, '#0891b2');
-      ctx.fillStyle = sg2;
-      ctx.shadowColor = '#00f0ff';
-      ctx.shadowBlur = 15;
-
-      ctx.beginPath();
-      ctx.moveTo(0, -this.ship.h / 2);
-      ctx.lineTo(-this.ship.w / 2, this.ship.h / 2);
-      ctx.lineTo(-this.ship.w / 4, this.ship.h / 3);
-      ctx.lineTo(0, this.ship.h / 2 - 4);
-      ctx.lineTo(this.ship.w / 4, this.ship.h / 3);
-      ctx.lineTo(this.ship.w / 2, this.ship.h / 2);
-      ctx.closePath();
-      ctx.fill();
-
-      ctx.shadowBlur = 0;
-      ctx.strokeStyle = 'rgba(255,255,255,0.3)';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(0, -this.ship.h / 2 + 4);
-      ctx.lineTo(-this.ship.w / 2 + 4, this.ship.h / 2 - 2);
-      ctx.stroke();
-
-      // Engine thrust
+      // ===== ENGINE THRUST (behind ship) =====
       ctx.shadowColor = '#facc15';
-      ctx.shadowBlur = 10;
-      const thrustSize = 4 + Math.sin(this.thrustTimer * 20) * 2;
-      const tGrad = ctx.createLinearGradient(0, this.ship.h / 2 + 6, 0, this.ship.h / 2 + 6 + thrustSize + 6);
-      tGrad.addColorStop(0, '#00f0ff');
+      ctx.shadowBlur = 24;
+      const ts = 7 + Math.sin(this.thrustTimer * 22) * 3;
+      const tGrad = ctx.createLinearGradient(0, h/2 + 4, 0, h/2 + 4 + ts + 10);
+      tGrad.addColorStop(0, '#ffffff');
+      tGrad.addColorStop(0.15, '#00f0ff');
       tGrad.addColorStop(0.5, '#facc15');
       tGrad.addColorStop(1, 'rgba(250,204,21,0)');
       ctx.fillStyle = tGrad;
-      ctx.fillRect(-3, this.ship.h / 2 + 6, 6, thrustSize + 6);
+      ctx.beginPath();
+      ctx.moveTo(-6, h/2 + 4);
+      ctx.quadraticCurveTo(-10, h/2 + 4 + ts + 8, 0, h/2 + 4 + ts + 12);
+      ctx.quadraticCurveTo(10, h/2 + 4 + ts + 8, 6, h/2 + 4);
+      ctx.closePath();
+      ctx.fill();
+
+      // Side thruster flames
+      ctx.shadowBlur = 12;
+      for (let sd = -1; sd <= 1; sd += 2) {
+        const st = 3 + Math.sin(this.thrustTimer * 26 + sd) * 1.5;
+        const sg2 = ctx.createLinearGradient(sd * 8, h/2 + 2, sd * 8, h/2 + 2 + st + 5);
+        sg2.addColorStop(0, '#00f0ff');
+        sg2.addColorStop(0.4, 'rgba(250,204,21,0.6)');
+        sg2.addColorStop(1, 'rgba(250,204,21,0)');
+        ctx.fillStyle = sg2;
+        ctx.fillRect(sd * 8 - 2, h/2 + 2, 4, st + 5);
+      }
+
+      // ===== MAIN HULL =====
+      ctx.shadowColor = '#00f0ff';
+      ctx.shadowBlur = 15;
+      const hullGrad = ctx.createLinearGradient(-w/2, -h/2, w/2, h/2);
+      hullGrad.addColorStop(0, '#0891b2');
+      hullGrad.addColorStop(0.25, '#22d3ee');
+      hullGrad.addColorStop(0.5, '#00f0ff');
+      hullGrad.addColorStop(0.75, '#22d3ee');
+      hullGrad.addColorStop(1, '#0891b2');
+      ctx.fillStyle = hullGrad;
+      ctx.beginPath();
+      ctx.moveTo(0, -h/2);
+      ctx.lineTo(-w/2, h/2);
+      ctx.lineTo(-w/4, h/2 - 5);
+      ctx.lineTo(0, h/2 - 7);
+      ctx.lineTo(w/4, h/2 - 5);
+      ctx.lineTo(w/2, h/2);
+      ctx.closePath();
+      ctx.fill();
+
+      // ===== COCKPIT =====
       ctx.shadowBlur = 0;
+      const ckGrad = ctx.createRadialGradient(0, -h/4, 0, 0, -h/4, w/3);
+      ckGrad.addColorStop(0, 'rgba(255,255,255,0.5)');
+      ckGrad.addColorStop(0.3, 'rgba(0,240,255,0.35)');
+      ckGrad.addColorStop(1, 'rgba(0,240,255,0.05)');
+      ctx.fillStyle = ckGrad;
+      ctx.beginPath();
+      ctx.ellipse(0, -h/4.5, w/3.5, h/4.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Cockpit frame line
+      ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(-w/3.5, -h/4.5);
+      ctx.quadraticCurveTo(0, -h/2.5, w/3.5, -h/4.5);
+      ctx.stroke();
+
+      // ===== WINGS =====
+      const wg = ctx.createLinearGradient(0, 0, 0, h/2);
+      wg.addColorStop(0, 'rgba(0,240,255,0.7)');
+      wg.addColorStop(1, 'rgba(0,240,255,0.05)');
+      ctx.shadowBlur = 10;
+      ctx.strokeStyle = '#00f0ff';
+      ctx.lineWidth = 1.5;
+      for (let sd = -1; sd <= 1; sd += 2) {
+        ctx.beginPath();
+        ctx.moveTo(sd * w/3.5, -h/8);
+        ctx.lineTo(sd * (w/2 + 10), h/3.5);
+        ctx.lineTo(sd * w/3.5, h/3.5);
+        ctx.closePath();
+        ctx.fillStyle = wg;
+        ctx.fill();
+        ctx.stroke();
+      }
+
+      // Wingtip glow dots
+      for (let sd = -1; sd <= 1; sd += 2) {
+        ctx.shadowColor = '#00f0ff';
+        ctx.shadowBlur = 14;
+        ctx.fillStyle = '#00f0ff';
+        ctx.beginPath();
+        ctx.arc(sd * (w/2 + 10), h/3.5, 3.5 + Math.sin(t * 5 + sd) * 1, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // ===== HULL DETAILS =====
+      ctx.shadowBlur = 0;
+      // Nose highlight
+      ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, -h/2 + 3);
+      ctx.lineTo(-w/3, h/2 - 8);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(0, -h/2 + 3);
+      ctx.lineTo(w/3, h/2 - 8);
+      ctx.stroke();
+
+      // Center line
+      ctx.strokeStyle = 'rgba(0,240,255,0.15)';
+      ctx.setLineDash([3, 4]);
+      ctx.beginPath();
+      ctx.moveTo(0, -h/2 + 2);
+      ctx.lineTo(0, h/2 - 6);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
       ctx.restore();
     }
 
@@ -1026,7 +1120,6 @@ class AsteroidBlaster {
     this.audio.die();
     this.engine.shake(25, 1.5);
     this.engine.flash('#ff2d78', 0.5);
-    window.removeEventListener('resize', this._onResize);
     
     setTimeout(() => {
       if (this.gameOverCallback) this.gameOverCallback(this.score);
@@ -1037,6 +1130,5 @@ class AsteroidBlaster {
   setGameOverCallback(cb) { this.gameOverCallback = cb; }
 
   destroy() {
-    window.removeEventListener('resize', this._onResize);
   }
 }
