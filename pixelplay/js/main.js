@@ -34,23 +34,30 @@
     const mx = clientX - rect.left;
     const my = clientY - rect.top;
 
-    if (engine.state === 'menu') {
-      menu.handleCanvasClick(mx, my);
+    // Check if the click is within the canvas bounds
+    if (mx >= 0 && mx <= rect.width && my >= 0 && my <= rect.height) {
+      if (engine.state === 'menu') {
+        menu.handleCanvasClick(mx, my);
+      }
     }
   };
 
-  canvas.addEventListener('click', handleInteraction);
-  canvas.addEventListener('touchstart', (e) => {
-    handleInteraction(e);
-    // Note: InputManager will handle the preventDefault if needed
+  window.addEventListener('click', handleInteraction);
+  window.addEventListener('touchstart', (e) => {
+    // Only handle if it's on the canvas to avoid interfering with other UI
+    if (e.target === canvas) {
+      handleInteraction(e);
+    }
   }, { passive: true });
 
-  canvas.addEventListener('mousemove', (e) => {
-    if (gameOverBusy) return;
+  window.addEventListener('mousemove', (e) => {
+    if (gameOverBusy || engine.state !== 'menu') return;
     const rect = canvas.getBoundingClientRect();
     const mx = e.clientX - rect.left;
     const my = e.clientY - rect.top;
-    menu.handleCanvasMove(mx, my);
+    if (mx >= 0 && mx <= rect.width && my >= 0 && my <= rect.height) {
+      menu.handleCanvasMove(mx, my);
+    }
   });
 
   menu.init(audio, {

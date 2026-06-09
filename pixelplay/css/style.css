@@ -100,11 +100,16 @@ body::after {
 }
 
 .screen.active {
-  pointer-events: none; /* Let clicks pass to canvas if content is empty */
+  pointer-events: none;
 }
 
-.screen > div:not(.hud-top):not(.hud-bottom) {
-  pointer-events: auto; /* Enable clicks for actual UI panels */
+/* Enable clicks ONLY for actual interactive panels */
+.gameover-content, .leaderboard-content, .garage-content {
+  pointer-events: auto;
+}
+
+.menu-content {
+  pointer-events: none !important;
 }
 
 .screen.hidden {
