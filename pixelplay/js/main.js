@@ -262,6 +262,112 @@
     speed: [150, 300, 600, 1200, 2400],
   };
 
+  let garageAnimId = null;
+  const garageCanvas = document.getElementById('garage-preview');
+  const garageCtx = garageCanvas ? garageCanvas.getContext('2d') : null;
+
+  function drawGaragePreview(ctx, W, H, t, upgrades) {
+    ctx.fillStyle = '#050510';
+    ctx.fillRect(0, 0, W, H);
+
+    // Draw scanning grid lines
+    ctx.strokeStyle = 'rgba(168, 85, 247, 0.1)';
+    ctx.lineWidth = 1;
+    const gridSize = 20;
+    const offset = (t * 15) % gridSize;
+    for (let x = offset; x < W; x += gridSize) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, H);
+      ctx.stroke();
+    }
+    for (let y = offset; y < H; y += gridSize) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(W, y);
+      ctx.stroke();
+    }
+
+    // Target ring
+    ctx.save();
+    ctx.translate(W / 2, H / 2 + 10);
+    ctx.strokeStyle = 'rgba(0, 240, 255, 0.25)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 8]);
+    ctx.beginPath();
+    ctx.arc(0, 0, 45, t * 0.4, t * 0.4 + Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+
+    // Ship hologram
+    ctx.save();
+    ctx.translate(W / 2, H / 2 + 10);
+    ctx.scale(1.2, 1.2);
+    const shipW = 32;
+    const shipH = 32;
+    
+    // Engine flame
+    const speedLvl = upgrades.speed || 0;
+    const flameH = 8 + speedLvl * 3 + Math.sin(t * 32) * 3;
+    const fGrad = ctx.createLinearGradient(0, shipH / 2, 0, shipH / 2 + flameH);
+    fGrad.addColorStop(0, '#ffffff');
+    fGrad.addColorStop(0.3, '#00f0ff');
+    fGrad.addColorStop(1, 'rgba(0, 240, 255, 0)');
+    ctx.fillStyle = fGrad;
+    ctx.beginPath();
+    ctx.moveTo(-5, shipH / 2);
+    ctx.quadraticCurveTo(-8, shipH / 2 + flameH * 0.7, 0, shipH / 2 + flameH);
+    ctx.quadraticCurveTo(8, shipH / 2 + flameH * 0.7, 5, shipH / 2);
+    ctx.closePath();
+    ctx.fill();
+
+    // Ship hull
+    ctx.strokeStyle = '#00f0ff';
+    ctx.lineWidth = 2;
+    ctx.shadowColor = '#00f0ff';
+    ctx.shadowBlur = 8 + Math.sin(t * 6) * 2;
+    ctx.fillStyle = 'rgba(0, 240, 255, 0.12)';
+    ctx.beginPath();
+    ctx.moveTo(0, -shipH / 2);
+    ctx.lineTo(-shipW / 2, shipH / 2);
+    ctx.lineTo(-shipW / 4, shipH / 2 - 5);
+    ctx.lineTo(0, shipH / 2 - 7);
+    ctx.lineTo(shipW / 4, shipH / 2 - 5);
+    ctx.lineTo(shipW / 2, shipH / 2);
+    ctx.closePath();
+    ctx.stroke();
+    ctx.fill();
+
+    // Shield bubble
+    const healthLvl = upgrades.health || 0;
+    if (healthLvl > 0) {
+      ctx.strokeStyle = `rgba(168, 85, 247, ${0.15 + (healthLvl * 0.12)})`;
+      ctx.shadowColor = '#a855f7';
+      ctx.shadowBlur = 10;
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 6]);
+      ctx.beginPath();
+      ctx.arc(0, 0, 36 + healthLvl * 2, -t * 0.6, -t * 0.6 + Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    // Stats HUD overlay
+    ctx.font = '700 9px Rajdhani, sans-serif';
+    ctx.fillStyle = '#94a3b8';
+    ctx.textAlign = 'left';
+    ctx.fillText('SYS: FIGHTER_MK1', 12, 18);
+    ctx.fillText('HULL ARMR: Lv.' + (upgrades.health || 0), 12, 28);
+    ctx.fillText('BLST CORE: Lv.' + (upgrades.fireRate || 0), 12, 38);
+    ctx.fillText('THRUSTER:  Lv.' + (upgrades.speed || 0), 12, 48);
+
+    ctx.textAlign = 'right';
+    ctx.fillStyle = 'rgba(0, 240, 255, 0.7)';
+    ctx.fillText('HOLOGRAPHIC PREVIEW', W - 12, 18);
+    ctx.fillStyle = '#10b981';
+    ctx.fillText('STATUS: ONLINE', W - 12, 28);
+  }
+
   function refreshGarage() {
     document.getElementById('garage-coins').textContent = storage.getCoins();
     const upgrades = storage.getUpgrades();
@@ -280,6 +386,20 @@
         btn.textContent = 'Buy (' + cost + '\u25C7)';
         btn.disabled = storage.getCoins() < cost;
       }
+    }
+
+    if (garageCtx) {
+      if (garageAnimId) cancelAnimationFrame(garageAnimId);
+      const startTime = performance.now();
+      const loop = (now) => {
+        const t = (now - startTime) / 1000;
+        drawGaragePreview(garageCtx, garageCanvas.width, garageCanvas.height, t, upgrades);
+        const goScreen = document.getElementById('screen-garage');
+        if (goScreen && !goScreen.classList.contains('hidden')) {
+          garageAnimId = requestAnimationFrame(loop);
+        }
+      };
+      garageAnimId = requestAnimationFrame(loop);
     }
   }
 

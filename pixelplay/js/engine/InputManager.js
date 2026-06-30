@@ -67,7 +67,7 @@ class InputManager {
   }
 
   wasPressed(code) {
-    return !!this.justPressed[code] || !!this.justPressed['Touch'];
+    return !!this.justPressed[code];
   }
 
   isTouchActive() {

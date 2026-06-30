@@ -1,0 +1,11 @@
+{
+  "name": "pixelplay",
+  "version": "1.0.0",
+  "description": "PixelPlay — Arcade Game",
+  "scripts": {
+    "dev": "http-server -p 3000"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  }
+}

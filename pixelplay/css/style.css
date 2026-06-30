@@ -457,6 +457,78 @@ body::after {
   background: var(--accent-cyan);
 }
 
+#lb-entries {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 260px;
+  overflow-y: auto;
+  margin-bottom: 2rem;
+  padding-right: 0.25rem;
+}
+
+.lb-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 0.6rem 1rem;
+  border-left: 3px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.2s ease;
+}
+
+.lb-entry:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-left-color: var(--accent-cyan);
+}
+
+.lb-rank {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+  width: 40px;
+}
+
+.lb-rank.gold {
+  color: var(--accent-yellow);
+  text-shadow: 0 0 8px rgba(250, 204, 21, 0.4);
+}
+
+.lb-rank.silver {
+  color: #e2e8f0;
+  text-shadow: 0 0 8px rgba(226, 232, 240, 0.4);
+}
+
+.lb-rank.bronze {
+  color: #ca8a04;
+  text-shadow: 0 0 8px rgba(202, 138, 4, 0.4);
+}
+
+.lb-name {
+  font-weight: 600;
+  flex-grow: 1;
+  text-align: left;
+  letter-spacing: 0.05em;
+  padding-left: 0.5rem;
+  text-transform: uppercase;
+}
+
+.lb-score {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.2rem;
+  color: var(--accent-cyan);
+  text-shadow: 0 0 8px rgba(0, 240, 255, 0.3);
+}
+
+.lb-empty {
+  text-align: center;
+  color: var(--text-secondary);
+  padding: 2rem 0;
+  font-style: italic;
+}
+
 .upgrade-item {
   background: rgba(255,255,255,0.02);
   border-radius: 0;
